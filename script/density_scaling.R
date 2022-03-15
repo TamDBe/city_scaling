@@ -10,11 +10,16 @@ library(lme4)
 
 
 ## GHS Data obtained from https://ghsl.jrc.ec.europa.eu/datasets.php
-data_location <- "datasets/GHS_urban_centers/GHS_STAT_UCDB2015MT_GLOBE_R2019A_V1_2.csv"
-urban <- read.csv(data_location)
+data <- "dataset/GHS_STAT_UCDB2015MT_GLOBE_R2019A_V1_2.csv"
+urban <- read.csv(data)
 
 ## CONSTANTS
 AREA_FILTER <- 100
+
+## Filter data for year 2015
+urban <- subset(urban, urban$AREA >= AREA_FILTER)
+urban <- subset(urban, with(urban, CTR_MN_ISO %in% names(which(
+  table(CTR_MN_ISO) >= 5))))
 
 ##########################
 #### Appendix Table 1
@@ -292,17 +297,10 @@ ggplot(area_pop_df, aes(x = Year, y = Exponent)) +
 #### Fig 1: Map
 ##########################
 
-
-# Filter out cities less than AREA_FILTER and countries with less than 5 cities
-# remaining for 2015
-urban <- subset(urban, urban$AREA >= AREA_FILTER)
-urban <- subset(urban, with(urban, CTR_MN_ISO %in% names(which(
-  table(CTR_MN_ISO) >= 5))))
-
+# Create map component
 data("World")
 World <- merge(World, area_pop_df_15,by.x = "iso_a3", by.y = "Code", all.x = T)
 urban$density15 <- (urban$P15 / urban$AREA)
-
 pop_area_map <- ggplot() +
   geom_sf(World, mapping = aes(fill = Exponent),lwd = 0.3,color = "black") +
   geom_point(arrange(urban, density15),mapping = aes(x = GCPNT_LON,
@@ -313,7 +311,7 @@ pop_area_map <- ggplot() +
   labs(size = "Density", fill = "Exponent") +
   theme(axis.title = element_blank())
 
-# Synthesize data for drawing lines in Exponent plot
+# Synthesize data for drawing lines in reference line plot
 slope_seq = seq(min(area_pop_df_15$Exponent),
                 max(area_pop_df_15$Exponent), by = 0.002)
 x_y <- data.frame(matrix(ncol = 2, nrow = 0))
@@ -325,7 +323,7 @@ for (i in 1:length(slope_seq)) {
   x_y <- rbind(x_y, r)
 }
 
-# Create label for Bettencourt's model
+# Bettencourt's model
 model_lbl <- expression(paste(alpha, " = 2/3"))
 
 # Create reference plot to show color scale gradient
@@ -349,7 +347,7 @@ allom_p <- ggplot(x_y) +
     legend.position = "none"
   )
 
-
+# Combine map figure components into one figure
 pop_area_map + inset_element(allom_p, 0, 0.1, 0.25, 0.55) &
   scale_fill_gradientn(
     colors = c("#181C43FF", "#3787BAFF", "#F1ECEBFF", "#BF593BFF", "#3C0912FF"),
@@ -379,6 +377,8 @@ pop_area_map + inset_element(allom_p, 0, 0.1, 0.25, 0.55) &
 ##########################
 #### Fig 2: Scatter plots
 ##########################
+# Display two scatter plot figures, one represents the data colored by the regions
+# and the other represents the data colored by development status
 
 region_scatter <- ggplot(urban, aes(log10(P15), log10(AREA), color = GRGN_L1)) +
   geom_point(stroke = 0.4, shape = 3, size = 0.7) +
