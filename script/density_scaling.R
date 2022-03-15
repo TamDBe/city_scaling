@@ -95,12 +95,12 @@ WriteJoinedTable <- function(countries_rma, countries_lm) {
   return(df)
 }
 
+# Build aggregate table of RMA and lm results for all years
 countries_rma <- dlply(urban, .(CTR_MN_ISO, CTR_MN_NM, DEV_CMI), sma,
                        formula = log(AREA) ~ log(P15))
 countries_lm <- dlply(urban, .(CTR_MN_ISO, CTR_MN_NM, DEV_CMI, GRGN_L1), lm,
                       formula = log(AREA) ~ log(P15))
 joined_area_df <- WriteJoinedTable(countries_rma, countries_lm)
-
 countries_rma <- urban %>%
   subset(subset = H00_AREA >= AREA_FILTER) %>%
   group_by(CTR_MN_ISO) %>%
@@ -113,7 +113,6 @@ countries_lm <- urban %>%
   dlply(.(CTR_MN_ISO, CTR_MN_NM, DEV_CMI, GRGN_L1), lm,
         formula = log(H00_AREA) ~ log(P00))
 joined_area_df <- WriteJoinedTable(countries_rma, countries_lm) %>% rbind(joined_area_df)
-
 countries_rma <- urban %>%
   subset(subset = H75_AREA >= AREA_FILTER) %>%
   group_by(CTR_MN_ISO) %>%
@@ -126,7 +125,6 @@ countries_lm <- urban %>%
   dlply(.(CTR_MN_ISO, CTR_MN_NM, DEV_CMI, GRGN_L1), lm,
         formula = log(H75_AREA) ~ log(P75))
 joined_area_df <- WriteJoinedTable(countries_rma, countries_lm) %>% rbind(joined_area_df)
-
 countries_rma <- urban %>%
   subset(subset = H90_AREA >= AREA_FILTER) %>%
   group_by(CTR_MN_ISO) %>%
@@ -148,7 +146,6 @@ joined_area_df$Ind <- replace(joined_area_df$Ind, joined_area_df$Ind == "log(P90
 colnames(joined_area_df)[4] = "Year"
 
 #write.xlsx(joined_area_df, "time_df.xlsx")
-
 
 
 
@@ -185,7 +182,6 @@ WriteRmaTable <- function(countries_rma) {
                "max_x")
   colnames(rma_df) <- headers
 
-  # append results from each list entry into a dataframe
   for (i in 1:length(countries_rma)) {
     summ <- countries_rma[[i]]
     r2 <- round(unlist(summ$r2), digits = 2)
@@ -221,7 +217,7 @@ WriteRmaTable <- function(countries_rma) {
 
 
 
-## Store RMA results for each year in a table
+## Store RMA results from each year in a table
 area_pop_df_15 <- urban %>%
   subset(AREA >= AREA_FILTER) %>%
   group_by(CTR_MN_ISO) %>%
@@ -291,8 +287,6 @@ ggplot(area_pop_df, aes(x = Year, y = Exponent)) +
 
 
 
-
-
 ##########################
 #### Fig 1: Map
 ##########################
@@ -311,7 +305,7 @@ pop_area_map <- ggplot() +
   labs(size = "Density", fill = "Exponent") +
   theme(axis.title = element_blank())
 
-# Synthesize data for drawing lines in reference line plot
+# Plot color gradient as reference
 slope_seq = seq(min(area_pop_df_15$Exponent),
                 max(area_pop_df_15$Exponent), by = 0.002)
 x_y <- data.frame(matrix(ncol = 2, nrow = 0))
@@ -322,11 +316,9 @@ for (i in 1:length(slope_seq)) {
   colnames(r) <- c("x", "Exponent")
   x_y <- rbind(x_y, r)
 }
-
 # Bettencourt's model
 model_lbl <- expression(paste(alpha, " = 2/3"))
-
-# Create reference plot to show color scale gradient
+# Create reference plot to show color scale gradient of exponents
 allom_p <- ggplot(x_y) +
   geom_segment(aes(x = 0, y = 0, xend = x, yend = Exponent * x, color = Exponent),
                show.legend = F) +
@@ -347,7 +339,7 @@ allom_p <- ggplot(x_y) +
     legend.position = "none"
   )
 
-# Combine map figure components into one figure
+# Combine components into one figure
 pop_area_map + inset_element(allom_p, 0, 0.1, 0.25, 0.55) &
   scale_fill_gradientn(
     colors = c("#181C43FF", "#3787BAFF", "#F1ECEBFF", "#BF593BFF", "#3C0912FF"),
@@ -377,7 +369,7 @@ pop_area_map + inset_element(allom_p, 0, 0.1, 0.25, 0.55) &
 ##########################
 #### Fig 2: Scatter plots
 ##########################
-# Display two scatter plot figures, one represents the data colored by the regions
+# Display two scatter plots, one represents the data colored by the regions
 # and the other represents the data colored by development status
 
 region_scatter <- ggplot(urban, aes(log10(P15), log10(AREA), color = GRGN_L1)) +
@@ -424,13 +416,13 @@ region_scatter + dev_scatter &
 
 
 
-
-
-
 ##########################
 #### Fig 3: Line graphs
 ##########################
+# Present change of slope over time with line plots. Plots are grouped by major
+# geographic region, development status, and individual regions.
 
+# Create plot with all regions
 region_plot <-
   ggplot(area_pop_df, aes(x = Year, y = Exponent, color = Region, group = Country)) +
   geom_abline() +
@@ -450,7 +442,7 @@ region_plot <-
   ylab(expression(paste("Scaling Exponent ", alpha)))
 
 
-# Order development for plotting aesthetics
+# Create plot grouping by development status
 area_pop_df$`Development Class` <- factor(area_pop_df$`Development Class`,
                                           levels = c("LDCL", "LDC", "MDR"))
 
@@ -477,6 +469,8 @@ region_plot + dev_plot &
 
 #ggsave("time_plot.pdf",width = 7, height = 3, device = 'pdf',dpi = 600)
 
+
+# Create a plot for each region
 sub1 <- area_pop_df[!(area_pop_df$Country %in% c("China", "Pakistan", "India", "France",
                                                "Russia", "Mexico", "Spain", "Brazil",
                                                "Argentina", "Nigeria", "South Africa") |
@@ -692,8 +686,7 @@ patch <- guide_area() / p123 / p456 / p789 / p10_11_12 +
 
 
 
-
-
+##########################
+#### ANCOVA on effects of development status
+##########################
 summary(aov(log10(AREA) ~ log10(P15) * DEV_CMI, data = urban))
-
-
