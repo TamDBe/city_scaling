@@ -3,12 +3,12 @@ This repo contains the resources for performing an analysis on the relation betw
 The data stored in this repo was obtained on Feb 25, 2022.
 
 R libraries used: 
--plyr
--tidyverse
--openxlsx
--smatr
--patchwork
--scales
--tmap
--sf
--lme4
+- plyr
+- tidyverse
+- openxlsx
+- smatr
+- patchwork
+- scales
+- tmap
+- sf
+- lme4
